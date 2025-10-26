@@ -1,0 +1,48 @@
+Shape & Channel
+- Channel: Farbinformation (1=Grau, 3=RGB, 4=RGBA)
+- Shape: Dimensionen des Tensors [Batch, Channel, Height, Width]
+
+# Beispiele für Shape:
+
+# Skalar: keine Dimensionen
+scalar = 5                    # Shape: ()
+
+# Vektor: 1 Dimension  
+vector = [1, 2, 3, 4]         # Shape: (4,)
+
+# Matrix: 2 Dimensionen
+matrix = [[1, 2, 3],          # Shape: (2, 3)
+          [4, 5, 6]]
+
+# Tensor: 3+ Dimensionen
+tensor_3d = [[[1, 2], [3, 4]],  # Shape: (2, 2, 2)
+             [[5, 6], [7, 8]]]
+
+Konkret im MNIST-Projekt:
+# Ein einzelnes MNIST-Bild:
+bild = train_set[0][0]        # Shape: torch.Size([1, 28, 28])
+print(bild.shape)             # Ausgabe: [1, 28, 28]
+
+# Bedeutung:
+# 1 = Channel (Graustufen)
+# 28 = Höhe (Pixel)
+# 28 = Breite (Pixel)
+
+# Ein Batch von Bildern:
+batch_images, batch_labels = next(iter(train_loader))
+print(batch_images.shape)     # Ausgabe: torch.Size([64, 1, 28, 28])
+
+# Bedeutung:
+# 64 = Batch-Größe (Anzahl Bilder)
+# 1 = Channel (Graustufen) 
+# 28 = Höhe (Pixel)
+# 28 = Breite (Pixel)
+
+BATCH von Bildern:
+[64,   1,   28,   28]
+ │     │     │     │
+ │     │     │     └── Breite (Width) in Pixel
+ │     │     └─────── Höhe (Height) in Pixel  
+ │     └───────────── Channel (1=Grau, 3=RGB)
+ └─────────────────── Batch-Größe (Anzahl Bilder)
+

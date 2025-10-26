@@ -1,0 +1,57 @@
+TensorFlow Implementierung 
+
+1. Daten laden
+- Aus Keras: (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+- Aus TFDS (gestreamt): ds_train_tfds = tfds.load('mnist', split='train', as_supervised=True)
+
+2. Daten normalisieren & vorbereiten
+- Pixelwerte von [0, 255] auf [0, 1] normalisieren: 
+	x_train = x_train.astype('float32') / 255.0
+- Für TFDS eine Mapping-Funktion schreiben: 
+	ds_train_tfds = ds_train_tfds.map(lambda img, lbl: (tf.cast(img, tf.float32) / 255.0, lbl))
+
+3. Optimierte Pipeline mit tf.data erstellen
+- Cache: ds = ds.cache() – Normalisierte Daten im RAM oder auf der Festplatte zwischenspeichern.
+- Shuffle: ds = ds.shuffle(buffer_size=10000) – Die Daten durchmischen.
+- Batch: ds = ds.batch(64) – Daten in Batches von 64 Bildern gruppieren.
+- Prefetch: ds = ds.prefetch(tf.data.AUTOTUNE) – Das Framework lädt den nächsten Batch automatisch vor, während der aktuelle Batch trainiert wird. Dies ist eine Form der automatischen Optimierung und des parallelen Ladens.
+
+
+PyTorch Implementierung
+
+1. Transforms definieren
+transform = transforms.Compose([transforms.ToTensor(), ...]) – ToTensor() konvertiert nicht nur in einen Tensor, sondern normalisiert auch automatisch auf [0,1].
+
+2. Daten laden
+Aus torchvision: train_set = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+
+3. Optimierten DataLoader erstellen
+train_loader = DataLoader(train_set, batch_size=64, shuffle=True, num_workers=2, pin_memory=True, persistent_workers=True)
+num_workers=2: Ermöglicht das parallele Laden der Daten durch 2 Hintergrundprozesse.
+pin_memory=True: Beschleunigt den GPU-Transfer, indem Daten in einem speziellen Bereich des RAMs abgelegt werden.
+persistent_workers=True: Vermeidet Worker-Overhead, indem die Worker-Prozesse zwischen den Epochen am Leben bleiben.
+
+
+EPOCHE (Zeitachse)
+    ↓
+BATCH (Daten pro Schritt)  
+    ↓
+TENSOR (Datenstruktur)
+    ↓
+TRANSFORM (Datenvorbereitung)
+    ↓
+MODELL (Verarbeitung)
+
+
+RAW DATA → [TRANSFORMs] → TENSORS → [EPOCHE 1] → [EPOCHE 2] → ... → TRAINIERTES MODELL
+           ↓
+      Daten werden
+     vorbereitet und
+     in Tensoren
+     konvertiert
+
+for epoch in range(5):  # ← EPOCHE
+    for batch in train_loader:  # ← BATCH von TENSOREN
+        # Jeder Tensor wurde durch TRANSFORMs vorbereitet
+        inputs, labels = batch  # ← TENSOREN
+        outputs = model(inputs) # ← Modell verarbeitet Tensoren

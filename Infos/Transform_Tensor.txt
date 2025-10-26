@@ -1,0 +1,31 @@
+Ein Tensor ist eine verallgemeinerte Matrix - die grundlegende Datenstruktur in Deep Learning.
+Warum Tensoren wichtig sind:
+- GPU-Beschleunigung: Tensoren können auf GPU verarbeitet werden
+- Automatische Differentiation: Ermöglicht Backpropagation
+- Einheitliche Datenstruktur: Für alle Framework-Operationen
+
+Typ	Dimensionen	Beispiel		Erklärung
+Skalar	0-D		5			Einzelner Wert
+Vektor	1-D		[1, 2, 3]		Liste von Werten
+Matrix	2-D		[[1,2], [3,4]]		Tabelle/Grid
+Tensor	3-D+		[[[1,2], [3,4]]]	Mehrdimensionale Arrays
+
+
+
+
+Transforms sind Operationen zur Datenvorverarbeitung - eine Reihe von Transformationen, die auf Daten angewendet werden.
+
+Transform-Pipeline:
+transform = transforms.Compose([
+    transforms.ToTensor(),           # 1. Bild → Tensor + Normalisierung
+    transforms.Normalize((0.5,), (0.5,))  # 2. Weitere Skalierung
+])
+
+
+wichtige Transforms:
+transform = transforms.Compose([
+    transforms.RandomRotation(10),     # Zufällige Drehung ±10°
+    transforms.RandomHorizontalFlip(), # Zufälliges Spiegeln
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
