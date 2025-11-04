@@ -7,23 +7,27 @@ import matplotlib.pyplot as plt
 import random
 import os
 
-print("=" * 50)
-print("OPTIMIERTE MNIST DATENSATZ ANALYSE MIT NEUEN FEATURES")
-print("=" * 50)
-
-# 1. MNIST aus beiden Quellen laden
+# =============================================================================
+# 1. DATENSÄTZE LADEN
+# =============================================================================
 print("\n1. 📥 DATENSÄTZE LADEN")
 
-# Aus Keras (bleibt gleich - bewährt und gut)
+# Aus Keras -> Rückgabe: Tuple von (Trainingsdaten, Testdaten) jeweils mit (Images, Labels)
 (x_train_keras, y_train_keras), (x_test_keras, y_test_keras) = mnist.load_data()
 print(f"✅ Keras: {x_train_keras.shape[0]:,} Trainingsbilder, {x_test_keras.shape[0]:,} Testbilder")
 
-# Aus TFDS (bleibt gleich)
+# Aus TFDS -> Parameter: 
+# - 'mnist': Name des Datensatzes
+# - split: Aufteilung in Train/Test
+# - as_supervised: Gibt (image, label) Tuple zurück
+# - shuffle_files: Mischt die Dateien beim Laden
 ds_train_tfds, ds_test_tfds = tfds.load('mnist', split=['train', 'test'], 
                                        as_supervised=True, shuffle_files=True)
 print(f"✅ TFDS: Datensätze erfolgreich geladen")
 
+# =============================================================================
 # 2. Normalisierung
+# =============================================================================
 print("\n2. 🔧 DATENVORBEREITUNG")
 
 def normalize_data(images):
@@ -36,7 +40,9 @@ x_test_norm = normalize_data(x_test_keras)
 print(f"📊 Wertebereich vor Normalisierung: [{x_train_keras.min()}, {x_train_keras.max()}]")
 print(f"📊 Wertebereich nach Normalisierung: [{x_train_norm.min():.3f}, {x_train_norm.max():.3f}]")
 
-# 3. Datensatz-Statistiken anzeigen (bleibt gleich)
+# =============================================================================
+# 3. Datensatz-Statistiken anzeigen
+# =============================================================================
 print("\n3. 📊 DATENSATZ-STATISTIKEN")
 
 def print_dataset_stats(images, labels, name):
@@ -53,7 +59,9 @@ def print_dataset_stats(images, labels, name):
 print_dataset_stats(x_train_norm, y_train_keras, "TRAININGSDATEN")
 print_dataset_stats(x_test_norm, y_test_keras, "TESTDATEN")
 
-# 4. Zufällige Beispiele anzeigen (bleibt gleich)
+# =============================================================================
+# 4. Zufällige Beispiele anzeigen
+# =============================================================================
 print("\n4. 🖼️ VISUALISIERUNG ZUFÄLLIGER BILDER")
 
 def plot_random_samples(images, labels, num_samples=10):
@@ -69,11 +77,14 @@ def plot_random_samples(images, labels, num_samples=10):
     
     plt.tight_layout()
     plt.savefig('mnist_random_samples.png', dpi=150, bbox_inches='tight')
+    plt.show(block=True)  # 👈 block=True erzwingt das Warten
     print(f"✅ Zufällige Beispiele gespeichert als 'mnist_random_samples.png'")
 
 plot_random_samples(x_train_norm, y_train_keras)
 
+# =============================================================================
 # 5. Erste Bild von jeder Klasse anzeigen (bleibt gleich)
+# =============================================================================
 print("\n5. 🔢 BEISPIEL FÜR JEDE ZIFFER")
 
 def plot_one_per_class(images, labels):
@@ -99,36 +110,19 @@ def plot_one_per_class(images, labels):
                  fontsize=16, weight='bold', y=1.02)
     plt.tight_layout()
     plt.savefig('mnist_per_class.png', dpi=150, bbox_inches='tight')
+    plt.show(block=True)  # 👈 block=True erzwingt das Warten
     print("✅ Beispiele pro Klasse gespeichert als 'mnist_per_class.png'")
 
 plot_one_per_class(x_train_norm, y_train_keras)
 
 # =============================================================================
-# 6. OPTIMIERTE DATENSATZ-VORBEREITUNG - NEUE FEATURES VON DEN FOLIEN
+# 6. DATENSATZ-VORBEREITUNG
 # =============================================================================
-print("\n6. 🎯 OPTIMIERTE DATENSATZ-VORBEREITUNG")
+print("\n6. 🎯 DATENSATZ-VORBEREITUNG")
 
-# 🔹 ALTE VERSION (auskommentiert)
-"""
-def create_tf_dataset(images, labels, batch_size=32, shuffle=True):
-    dataset = tf.data.Dataset.from_tensor_slices((images, labels))
-    
-    if shuffle:
-        dataset = dataset.shuffle(buffer_size=10000)
-    
-    dataset = dataset.batch(batch_size)
-    dataset = dataset.prefetch(tf.data.AUTOTUNE)
-    
-    return dataset
-"""
-
-# 🔹 NEUE OPTIMIERTE VERSION (nach Dozent-Empfehlung)
-def create_optimized_tf_dataset(images, labels, batch_size=32, shuffle=True, 
+def create_tf_dataset(images, labels, batch_size=32, shuffle=True, 
                                training=True, cache_data=True):
-    """
-    Optimierte Version mit Cache und verbessertem Prefetching.
-    Entspricht den Empfehlungen aus den neuen Folien.
-    """
+
     # 1. Dataset aus Tensoren erstellen
     dataset = tf.data.Dataset.from_tensor_slices((images, labels))
     
@@ -136,18 +130,18 @@ def create_optimized_tf_dataset(images, labels, batch_size=32, shuffle=True,
     dataset = dataset.map(lambda x, y: (tf.cast(x, tf.float32), y), 
                          num_parallel_calls=tf.data.AUTOTUNE)
     
-    # 🔹 NEU: CACHE für Performance (Dozent-Empfehlung)
+    # 3. ⚡ CACHE Vermeidet wiederholte Normalisierung
     if cache_data:
         dataset = dataset.cache()  # Normalisierte Daten im RAM cachen
     
-    # 3. Shuffling (nur für Training)
+    # 4. 🔀 Shuffling (nur für Training) Bessere Generalisierung
     if shuffle and training:
         dataset = dataset.shuffle(buffer_size=10000, reshuffle_each_iteration=True)
     
-    # 4. Batching
+    # 5. 📦 Batching  Effiziente GPU-Nutzung
     dataset = dataset.batch(batch_size)
     
-    # 🔹 NEU: VERBESSERTES PREFETCHING (Dozent-Empfehlung)
+    # 6. 🚀 PREFETCHING  Paralleles Laden
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     
     return dataset
@@ -155,41 +149,27 @@ def create_optimized_tf_dataset(images, labels, batch_size=32, shuffle=True,
 # Parameter
 BATCH_SIZE = 64
 
-# 🔹 ALTE VERSION (auskommentiert)
-"""
-train_dataset = create_tf_dataset(x_train_norm, y_train_keras, 
-                                 batch_size=BATCH_SIZE, shuffle=True)
-test_dataset = create_tf_dataset(x_test_norm, y_test_keras, 
-                                batch_size=BATCH_SIZE, shuffle=False)
-"""
-
-# 🔹 NEUE OPTIMIERTE VERSION
-train_dataset = create_optimized_tf_dataset(
+train_dataset = create_tf_dataset(
     x_train_norm, y_train_keras, 
     batch_size=BATCH_SIZE, 
     shuffle=True, 
     training=True,
-    cache_data=True  # 🔹 NEU: Cache aktiviert
+    cache_data=True
 )
 
-test_dataset = create_optimized_tf_dataset(
+test_dataset = create_tf_dataset(
     x_test_norm, y_test_keras, 
     batch_size=BATCH_SIZE, 
     shuffle=False,    # 🔹 WICHTIG: Kein Shuffle für Testdaten!
     training=False,
-    cache_data=True   # 🔹 NEU: Cache auch für Testdaten
+    cache_data=True
 )
 
 print(f"✅ OPTIMIERTER Trainingsdatensatz erstellt:")
 print(f"   - Batch-Größe: {BATCH_SIZE}")
-print(f"   - Shuffling: aktiviert") 
-print(f"   - Caching: aktiviert 🔹 NEU")
-print(f"   - Prefetching: optimiert 🔹 NEU")
 
 print(f"✅ OPTIMIERTER Testdatensatz erstellt:")
 print(f"   - Batch-Größe: {BATCH_SIZE}")
-print(f"   - Shuffling: deaktiviert (korrekt für Evaluation)")
-print(f"   - Caching: aktiviert 🔹 NEU")
 
 # =============================================================================
 # 7. ERWEITERTE BATCH-ANALYSE MIT PERFORMANCE-FEATURES
@@ -209,7 +189,7 @@ def inspect_optimized_batches(dataset, num_batches=1):
         print(f"  - Wertebereich: [{batch_images.numpy().min():.3f}, {batch_images.numpy().max():.3f}]")
         print(f"  - Datentyp: {batch_images.dtype}")
         
-        # 🔹 NEU: Performance-relevante Informationen
+        # Performance-relevante Informationen
         print(f"  - Eindeutige Labels im Batch: {len(tf.unique(batch_labels).y)}")
         
         # Zeige die ersten 5 Labels für Stichprobe
@@ -221,7 +201,7 @@ inspect_optimized_batches(train_dataset)
 # 8. ZUSAMMENFASSUNG MIT NEUEN FEATURES
 # =============================================================================
 print("\n" + "=" * 50)
-print("🎉 OPTIMIERTE ZUSAMMENFASSUNG")
+print("🎉 ZUSAMMENFASSUNG")
 print("=" * 50)
 
 print(f"✅ MNIST Datensatz erfolgreich mit OPTIMIERTER Pipeline geladen")
@@ -241,4 +221,3 @@ print(f"   - mnist_random_samples.png")
 print(f"   - mnist_per_class.png")
 
 print(f"\n🎯 Der Datensatz ist jetzt OPTIMAL vorbereitet für Deep Learning!")
-print(f"   Entspricht den Best Practices aus den Vorlesungsfolien!")
